@@ -1,5 +1,6 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphql import GraphQLError
 
 from .models import Track
 
@@ -25,10 +26,15 @@ class CreateTrack(graphene.Mutation):
         url = graphene.String()
 
     def mutate(self, info, title, description, url):
+        user = info.context.user
 
-        track = Track(title=title, description=description, url=url)
+        if user.is_anonymous:
+            raise GraphQLError('Log in to add a track.')
+
+        track = Track(title=title, description=description,
+                      url=url, posted_by=user)
         track.save()
-        return CreateTrack(track=track)
+        return CreateTrack(track)
 
 
 class Mutation(graphene.ObjectType):
